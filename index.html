@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            text-align: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 6px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 36px;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            transition: background-color 0.3s;
+        }
+        .cell:hover {
+            background-color: #e9ecef;
+        }
+        .cell.animate-click {
+            animation: cell-click 0.3s;
+        }
+        @keyframes cell-click {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .turn {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:active {
+            transform: translateY(1px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: result-fade-in 0.5s forwards;
+        }
+        @keyframes result-fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        /* Space-themed theme */
+        .space-theme .container {
+            background-color: #000;
+            color: #fff;
+        }
+        .space-theme .board {
+            background-color: #000;
+            border-color: #666;
+        }
+        .space-theme .cell {
+            background-color: #000;
+            color: #fff;
+        }
+        .space-theme .cell:hover {
+            background-color: #111;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic Tac Toe</h1>
+        <div class="board" id="board"></div>
+        <div class="turn" id="turn"></div>
+        <button class="button" id="play-again">Play Again</button>
+        <button class="button" id="theme-dark">Dark Mode</button>
+        <audio id="click-sound" src="sounds/click.mp3"></audio>
+        <audio id="win-sound" src="sounds/win.mp3"></audio>
+        <audio id="draw-sound" src="sounds/draw.mp3"></audio>
+        <div id="myModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div class="result" id="result-modal"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const board = document.getElementById('board');
+        const turnDisplay = document.getElementById('turn');
+        const resultDisplay = document.getElementById('result');
+        const resultDisplayModal = document.getElementById('result-modal');
+        const playAgainButton = document.getElementById('play-again');
+        const modal = document.getElementById('myModal');
+        const span = document.querySelector('.close');
+        const clickSound = document.getElementById('click-sound');
+        const winSound = document.getElementById('win-sound');
+        const drawSound = document.getElementById('draw-sound');
+        const themeDarkBtn = document.getElementById('theme-dark');
+        let currentPlayer = 'X';
+        let gameOver = false;
+        let cells = Array(9).fill('');
+        let isSpaceTheme = false;
+
+        // Function to handle cell click
+        function handleClick(index) {
+            if (!gameOver && cells[index] === '') {
+                cells[index] = currentPlayer;
+                render();
+                checkWinner();
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateTurnDisplay();
+                clickSound.play();
+            }
+        }
+
+        // Function to check for a winner
+        function checkWinner() {
+            const winningCombos = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+            for (let combo of winningCombos) {
+                const [a, b, c] = combo;
+                if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+                    gameOver = true;
+                    resultDisplayModal.textContent = `Player ${currentPlayer} wins!`;
+                    resultDisplayModal.style.color = '#28a745'; // Green color for win
+                    modal.style.display = 'block';
+                    winSound.play();
+                    return;
+                }
+            }
+            if (!cells.includes('')) {
+                gameOver = true;
+                resultDisplayModal.textContent = 'It\'s a draw!';
+                resultDisplayModal.style.color = '#333'; // Default color for draw
+                modal.style.display = 'block';
+                drawSound.play();
+            }
+        }
+
+        // Function to render the game board
+        function render() {
+            board.innerHTML = '';
+            cells.forEach((value, index) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.textContent = value;
+                cell.addEventListener('click', () => handleClick(index));
+                if (value !== '') {
+                    cell.classList.add('animate-click');
+                }
+                board.appendChild(cell);
+            });
+            if (isSpaceTheme) {
+                board.classList.add('space-theme');
+            } else {
+                board.classList.remove('space-theme');
+            }
+        }
+
+        // Function to update turn display
+        function updateTurnDisplay() {
+            turnDisplay.textContent = `Player ${currentPlayer}'s turn`;
+        }
+
+        // Function to reset the game
+        function resetGame() {
+            currentPlayer = 'X';
+            gameOver = false;
+            cells = Array(9).fill('');
+            render();
+            updateTurnDisplay();
+            modal.style.display = 'none';
+        }
+
+        // Function to toggle theme
+        function toggleTheme() {
+            isSpaceTheme = !isSpaceTheme;
+            render();
+            // Update button text
+            themeDarkBtn.textContent = isSpaceTheme ? 'Light Mode' : 'Dark Mode';
+        }
+
+        // Event listeners
+        playAgainButton.addEventListener('click', resetGame);
+        themeDarkBtn.addEventListener('click', toggleTheme);
+        span.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Initial render
+        render();
+        updateTurnDisplay();
+    </script>
+</body>
+</html>
